@@ -32,5 +32,5 @@ see example files in test directory for usage
   </script>
   <span class="name">
   <span class="accountAge">
-  <button class="profile_link">profile</button>
+  <button class="profile_link"></button>
 </div>
