@@ -7,7 +7,7 @@ view code is kept near it's html template, without being mixed into it
 see example files in test directory for usage
 
 simple example:
-
+<code>
 <div template="user">
   <script>
     templateScripts.userListing = function(scope, template){
@@ -35,3 +35,4 @@ simple example:
   <span class="accountAge">
   <button class="profile_link">profile</button>
 </div>
+</code>
