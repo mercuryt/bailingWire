@@ -1,0 +1,59 @@
+<html>
+  <head>
+   <title>bailing wire hello world</title>
+    <script type="text/javascript" src="../src/output.js"></script>
+  </head>
+  <body>
+    <div bw-root="main">
+    </div>
+    <div template="main">
+      <script>
+        window.templateScripts = {};
+        templateScripts.main = function(scope, template){
+          window.root = scope;
+          scope.bindTemplate('#display', 'display', {'message': 'data.message'});
+          scope.bindTemplate('#edit', 'edit', {'message': 'data.message'});
+	  scope.data = {message: 'hello'};
+          setTimeout(function(){
+            scope.data.message += ' world';
+          }, 1000);
+	  scope.list = [{name:'aa'}, {name: 'bb'}];
+	  scope.bindArray('ul', 'listing', {}, 'list');
+	  scope.bindElement('#count', 'innerHTML', 'list.length');
+        };
+      </script>
+      <div id="display"> </div>
+      <div id="edit"> </div>
+      <div id="count"> </div>
+      <ul></ul>
+    </div>
+    <div template="display">
+      <script>
+        templateScripts.display = function(scope, template){
+	  window.display = scope;
+          scope.bindElement('span', 'innerHTML', 'message');
+        };
+      </script>
+      <span></span>
+    </div>
+    <div template="edit">
+      <script>
+        templateScripts.edit = function(scope, template){
+	  window.edit = scope;
+          scope.bindElement('input', 'value', 'message');
+        };
+      </script>
+      <input type="text" />
+    </div>
+    <div template="listing">
+      <script>
+        templateScripts.listing = function(scope, template){
+	  window.listing = window.listing || [];
+	  window.listing.push(scope);
+          scope.bindElement('span', 'innerHTML', '$listItem.name');
+        };
+      </script>
+      <span></span>
+    </div>
+  </body
+</html>

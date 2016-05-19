@@ -1,0 +1,149 @@
+<html>
+  <head>
+    <script type='text/javascript'>
+      window.templateScripts = {};
+    </script>
+  </head>
+  <body>
+
+      <div template="main">
+        <script type='text/javascript'>
+          templateScripts.main = function(){
+             this.messageA = 'hello';
+             this.messageB = 'world';
+             this.querySelector('.holder').appendChild(
+               this.templates.messagePart.instance({message: 'messageA'}, this)
+             );
+             this.querySelector('.holder').appendChild(
+               this.templates.messagePart.instance({message: 'messageB'}, this)
+             );  
+          };
+        </script>
+        <div class="holder">
+        </div>
+    </div>
+
+    <div template="messagePart">
+      <script type='text/javascript'>
+        templateScripts.messagePart = function(){
+          this.bind('message', 'div');
+          this.bind('input', 'message');
+        };
+      </script>
+      <div></div>
+      <input>
+    </div>
+    
+   
+
+    <script type='text/javascript'>
+      'use strict';
+      var templateElements = document.querySelectorAll('[template]'),
+          templates = {};
+      function privateKey(key){
+        return 'ಠ_ಠ' + key;
+      }
+
+      function onChange(o, key, action){
+        o.onChange = o.onChange || {}
+        if(!o.onChange[key]){
+          o.onChange[key] = [];
+          var pKey = privateKey(key);
+          Object.defineProperty(o, key, {
+             set: function(x){
+               if(x == 'hello')
+                 console.error();
+               if(o[pKey] != x){
+                 console.log('set', key, x);
+                 o[pKey] = x;
+                 for(var i in o.onChange[key])
+                   o.onChange[key][i](x);
+               }
+               return x;
+             },
+             get: function(){
+               return o[pKey];
+             }
+          });
+        }
+        o.onChange[key].push(action);
+        return function(){ // stop watching
+          o.onChange[key].splice(o.onChange[key].indexOf(action), 1);
+        }
+      }
+      function setUp(element){
+        var element = templateElements[i],
+            name = element.getAttribute('template');
+        element.style.display = 'none';
+        templates[name] = element;
+        element.controller = templateScripts[name];
+        element.dependentElements = {};
+        // params supplied as {keyInInner : 'keyinOuter' }
+        element.instance = function(params, parentElement){
+           var output = this.cloneNode(true);//deep
+           output.params = params;
+           output.parentTemplate = parentElement;
+           output.stopListening = [];
+           output.onChange = function(keys, continuation){
+             var _keys = keys.split(','), stop;
+             for(var i = 0; i < _keys.length; i++){
+                stop = onChange(this, _keys[i], continuation);
+                this.stoplistening.push(stop);
+             }
+           }
+           // bind elements to a property
+           output.bind = function(query, key){
+             var elements = this.querySelectorAll(query), element;
+             for(var i = 0; i < elements.length; i++){
+               (function(element){
+                 if(element.value !== undefined){ // element is an input of some type
+                   if(output[key] !== undefined)
+                     element.value = output[key];
+                   element.onchange = element.onkeyup = function(){
+                     output[key] = this.value;
+                   }
+                   output.onChange(key, function(value){
+                     if(element.value != value)
+                       element.value = value;
+                   });
+                 } else {
+                   output.onChange(key, function(value){
+                     element.innerHTML = value;
+                   });
+                 }
+               })(elements[i]);
+             }
+           }
+           output.bindChild = function(template, paramaters, query){
+
+           }
+           // clean up listeners
+           output.DOMNodeRemoved = function(){
+             for(var i; i < this.stopListening.length; i++){
+               this.stopListening[i]();
+             }
+           }
+           if(params)
+             for(var key in params){
+               output[key] = parentElement[params[key]];
+               parentElement.onChange(params[key], function(value){
+                 output[key] = value;
+               });
+               output.onChange(key, function(value){
+                 parentElement[params[key]] = value;
+               });
+             }
+           output.style.display = 'inherit';
+           output.templates = templates;
+           element.controller.call(output);
+           return output;
+        }
+      }
+      for (var i = 0; i < templateElements.length; i++)
+        setUp(templateElements[i]);
+      var main = templates.main;
+      main.templates = templates;
+      document.querySelector('body').appendChild(main.instance());
+    </script>
+  </body>
+</html>

@@ -1,0 +1,84 @@
+<html>
+  <head>
+   <title>bailing wire to do</title>
+    <style>
+      .holder.edit .showMode{
+        display: none;
+      }
+      .holder.show .editMode{
+        display: none;
+      }
+      .selected{
+          font-weight: bold;
+      }
+    </style>
+    <script type="text/javascript" src="../src/output.js"></script>
+  </head>
+  <body>
+    <div bw-root="main">
+    </div>
+    <div template="main">
+      <script>
+        window.templateScripts = {};
+        templateScripts.main = function(scope, template){
+	  window.root = scope;
+          scope.tasks = [
+            {  
+              name: "work out",
+              text: "pump you up"
+            }
+          ];
+          scope.task = scope.tasks[0];
+          scope.bindTemplate('.detailHolder', 'detail', {task: 'task'});
+          //scope.bindArray('.listHolder', 'listing', {task: 'currentTask'}, 'tasks');
+          template.querySelector('button').addEventListener('click', function(){
+            scope.data.tasks.push(scope.task = {name: '', text: ''});
+          });
+      };
+      </script>
+      <ul class="listHolder"></ul>
+      <div class="detailHolder"></div>
+      <button>new</button>
+    </div>
+
+    <div template="listing">
+      <script>
+        templateScripts.listing = function(scope, template){
+          scope.bindElement('span', 'innerHTML','name');
+          template.querySelector('button').addEventListener('click', function(){
+            scope.data.task = scope.listItem; // specal property provided to array scopes, listItem
+          });
+          scope.bindElement('span', 'class', function(){
+            return scope.data.task == scope.listItem? 'selected': null;
+          });
+      };
+      </script>
+      <button>
+        <span></span>
+      </button>
+    </div>
+
+    <div template="detail">
+      <script>
+        templateScripts.detail = function(scope, template){
+          scope.bindElement('h1', 'innerHTML', 'task.name');
+          scope.bindElement('p', 'innerHTML', 'task.text');
+          scope.bindElement('.showMode', 'style.visibility', function(){
+            scope.editMode ? 'hidden' : '';
+          });
+          scope.bindElement('.editMode', 'style.visibility', function(){
+            scope.editMode ? '' : 'hidden';
+          });
+      };
+      </script>
+      <div class="showMode">
+        <h1></h1>
+        <p></p>
+      </div>
+      <div class="editMode">
+        <input type="text"></input>
+        <textarea></textarea>
+      </div>
+    </div>
+  </body
+</html>

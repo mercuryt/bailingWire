@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <script type='text/javascript' src='listenable.js'></script>
+    <script type='text/javascript' src='scope.js'></script>
+    <script type='text/javascript' src='setup.js'></script>
+  </head>
+  <body>
+
+      <div template="main">
+        <script type='text/javascript'>
+          templateScripts.main = function(scope){
+             scope.messageA = 'hello';
+             scope.messageB = 'world';
+             this.querySelector('.holder').appendChild(
+               scope.child({message: 'messageA'}, 'messagePart').template
+             );
+             this.querySelector('.holder').appendChild(
+               scope.child({message: 'messageB'}, 'messagePart').template
+             );  
+          };
+        </script>
+        <div class="holder">
+        </div>
+    </div>
+
+    <div template="messagePart">
+      <script type='text/javascript'>
+        templateScripts.messagePart = function(scope){
+          scope.bind('span, input', 'message');
+        };
+      </script>
+      <span></span>
+      <input>
+    </div>
+  </body>
+</html>
