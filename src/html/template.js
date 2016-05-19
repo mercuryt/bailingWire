@@ -1,6 +1,6 @@
 'use strict';
 // find and record templates
-// somehow running twice?? 4 scopes in items list
+window.templateScripts = {};
 var templates = {};
 var hasSetUp = false;
 function setup(){

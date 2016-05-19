@@ -78,14 +78,29 @@ Scope.prototype = {
     if(this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this, _parent = this._parent, getArray = dataBinding.walkAndGet(_parent, arrayPath + '.' + $index);
+    var that = this, _parent = this._parent;
     this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
         that.$listItem = x; 
       
     });
-    //this.$listItem = getArray();
+  },
+  $: function(selector){
+    return new ChainableSelector(selector, this);
+  },
+  on: function(selector, eventName, callback){
+    this.template.querySelector(selector).addEventListener(eventName, callback);
   }
 }
+
+var alias = {
+  array: 'bindArray',
+  attr: 'bindElement',
+  template: 'bindTemplate',
+  computed: 'bindComputed'
+};
+
+for(var key in alias)
+  Scope.prototype.key
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);

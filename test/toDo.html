@@ -2,12 +2,6 @@
   <head>
    <title>bailing wire to do</title>
     <style>
-      .holder.edit .showMode{
-        display: none;
-      }
-      .holder.show .editMode{
-        display: none;
-      }
       .selected{
           font-weight: bold;
       }
@@ -19,9 +13,7 @@
     </div>
     <div template="main">
       <script>
-        window.templateScripts = {};
-        templateScripts.main = function(scope, template){
-	  window.root = scope;
+        templateScripts.main = function(scope){
           scope.tasks = [
             {  
               name: "work out",
@@ -33,63 +25,67 @@
 	    }
           ];
           scope.task = scope.tasks[0];
-          scope.bindTemplate('.detailHolder', 'detail', {task: 'task', editMode: 'editMode'});
-          scope.bindArray('.listHolder', 'listing', {currentTask: 'task'}, 'tasks');
-          template.querySelector('button.new').addEventListener('click', function(){
+	  scope.removeTask = function(task){
+             scope.tasks.splice(scope.tasks.indexOf(task), 1);
+	  };
+          scope.$('div').template('detail', {task: 'task', editMode: 'editMode'});
+          scope.$('ul').array('listing', {currentTask: 'task', removeTask: 'removeTask'}, 'tasks');
+          scope.$('button').on('click', function(){
             scope.tasks.push(scope.task = {name: '', text: ''});
 	    scope.editMode = true;
           });
       };
       </script>
-      <ul class="listHolder"></ul>
-      <div class="detailHolder"></div>
-      <button class="new">new</button>
+      <ul></ul>
+      <div></div>
+      <button>new</button>
     </div>
 
     <div template="listing">
       <script>
-        window.listing = [];
-        templateScripts.listing = function(scope, template){
-          listing.push(scope);
-          scope.bindElement('span', 'innerHTML','$listItem.name');
-          template.querySelector('button').addEventListener('click', function(){
-            scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
-          });
-          scope.bindElement('span', 'style.color', function(){
+        templateScripts.listing = function(scope){
+          scope.$('button.select').
+	    attr('innerHTML','$listItem.name').
+	    on('click', function(){
+              scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
+            });
+          scope.$('span').attr('style.color', function(){
             return scope.currentTask == scope.$listItem ? 'red': 'black';
           });
+	  scope.$('button.remove').on('click', function(){
+            scope.removeTask(scope.$listItem);
+	  });
       };
       </script>
-      <button>
-        <span></span>
-      </button>
+      <button class="select"></button>
+      <button class="remove"></button>
+      
     </div>
 
     <div template="detail">
       <script>
-        templateScripts.detail = function(scope, template){
-          window.detail = scope;
-          scope.bindElement('button', 'innerHTML', function(){
-            return scope.editMode ? 'ok': 'edit';
-          });
-	  template.querySelector('button.toggle').addEventListener('click', function(){
-            scope.editMode = !scope.editMode;
-	    if(scope.editMode)
-	      template.querySelector('input').focus();
-          });
+        templateScripts.detail = function(scope){
+          scope.$('button').
+	    attr('innerHTML', function(){
+              return scope.editMode ? 'ok': 'edit';
+            }).on('button.toggle', 'click', function(){
+              scope.editMode = !scope.editMode;
+	      if(scope.editMode)
+	        scope.$('input').focus();
+            });
 
-          scope.bindElement('.showMode', 'style.visibility', function(){
+          scope.$('.showMode').attr('style.visibility', function(){
             return scope.editMode ? 'hidden' : '';
           });
-          scope.bindElement('h1', 'innerHTML', 'task.name');
-          scope.bindElement('p', 'innerHTML', 'task.text');
+          scope.$('h1').attr('innerHTML', 'task.name');
+          scope.$('p').attr('innerHTML', 'task.text');
 
 
-          scope.bindElement('.editMode', 'style.visibility', function(){
+          scope.$('.editMode').attr('style.visibility', function(){
             return scope.editMode ? '' : 'hidden';
           });
-          scope.bindElement('input', 'value', 'task.name');
-          scope.bindElement('textarea', 'value', 'task.text');
+          scope.$('input').attr('value', 'task.name');
+          scope.$('textarea').attr('value', 'task.text');
 
       };
       </script>
