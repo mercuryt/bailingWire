@@ -34,9 +34,9 @@ function bindToArray(array, actions){
       if(actions.shift) actions.shift();
       if(setIndexFrom) setIndexFrom(0);
     },
-    splice: function(index, count, insert){
+    splice: function(index, count){ // trailing optional paramaters
       length();
-      if(actions.splice) actions.splice(index, count, insert);
+      if(actions.splice) actions.splice.apply(actions, arguments)
       if(setIndexFrom) setIndexFrom(index);
     }
   });
@@ -46,11 +46,15 @@ function bindToArray(array, actions){
 //cause a function to be re-evaluated when any member of 'this' within the function body changes
 function computedProperty(_parent, action, callback){
   var script = action.toString(),
-      regex = /(?:this|scope)\.([0-9A-Za-z.]+)(?! *=)/g,
+      regex = /(?:this|scope)\.([0-9A-Za-z\.$]+)/g,
       cleanup = [],
       match;
+  function onChange(){
+    callback(action());
+  }
+  onChange();
   while(match = regex.exec(script))
-    cleanup.push(dataBinding.addOnSet(_parent, match[1], callback));
+    cleanup.push(dataBinding.addOnSet(_parent, match[1], onChange));
   return callArray.bind(null, cleanup);
 }
 
@@ -319,7 +323,7 @@ function realKeys(){
 // holder: the element to put the template instances in
 // array: the array object to watch
 // template: the template class object
-function bindArrayToHTML(holder, array, template){
+function bindArrayToHTML(holder, array, template, _parent){
   var templates = []; // the list of template instance objects
   array.onSet = array.onSet || {};
   array.onSet['length'] = array.onSet['length'] || [];
@@ -327,12 +331,10 @@ function bindArrayToHTML(holder, array, template){
   if(!(array.onCall && array.onCall.push)){
     dataBinding.array(array, {
       push: function(x){
-        var tpl = template(array.length - 1, array);
-        templates.push(tpl);
-        holder.appendChild(tpl.template);
-	var arrayItem = array[array.length - 1];
         setTimeout(function(){
-          tpl.$listItem = arrayItem;
+          var tpl = template(array.length - 1, array);
+          templates.push(tpl);
+          holder.appendChild(tpl.template);
 	}, 1);
       },
       pop: function(){
@@ -340,43 +342,33 @@ function bindArrayToHTML(holder, array, template){
         templates.pop();
       },
       unshift: function(x){
-        this.removeIndexBindingsFrom(0);
         var tpl = template(0, array);
         templates.unshift(tpl);
-        holder.insertBefore(tpl.template, holder.childNodes[0]);
-	var that = this, arrayItem = array[0];
-	setTimeout(function(){
-	  that.setIndexFrom(0);
-	  tpl.$listItem = arrayItem;
-	}, 1);
+        holder.insertBefore(tpl.template, holder.firstChild);
       },
       shift: function(){
         holder.removeChild(holder.firstChild);
         templates.shift();
       },
-      splice: function(index, count, items){
-        while(count){
+      splice: function(index, count){
+	var countCopy = count;
+        while(countCopy){
           holder.removeChild(holder.childNodes[index]);
-          count--;
+          countCopy--;
         }
-        var createdTemplates;
-	if(items){
-	  createdTemplates = [];
+        var items = Array.prototype.slice.call(arguments, 2);
+	if(items.length){
+          var createdTemplates = [],
+	       indexCopy = index;
           items.forEach(function(item){
-            var tpl = template(index, array);
+            var tpl = template(indexCopy, array);
             createdTemplates.push(tpl);
-            holder.insertBefore(holder.querySelector(':nth-child(' + index + ')'), tpl.element);
-            index++;
-            templates.splice(index, count, createdTemplates);
+            holder.insertBefore(tpl.template, holder.children[indexCopy]);
+            indexCopy++;
           });
+	  templates.splice.bind(templates, index, count).apply(createdTemplates);
         } else
 	  templates.splice(index, count);
-      },
-      removeIndexBindingsFrom: function(index){
-         while(index < templates.length){
-           templates[index].removeIndexBinding();
-           index++;
-	 }
       },
       setIndexFrom: function(index){
         while(index < templates.length){
@@ -397,14 +389,14 @@ function bindArrayToHTML(holder, array, template){
   }
 }
 
-function bindArrayPathToHTML(holder, templateName, _parent, path){
-  dataBinding.addOnSet(_parent, path, function(array){
-    bindArrayToHTML(holder, array, templateName);
+function bindArrayPathToHTML(holder, template, _parent, path){
+  return dataBinding.addOnSet(_parent, path, function(array){
+    bindArrayToHTML(holder, array, template, _parent);
   });
 }
 
-//working: push, pop, set value, set property
-//not working: unshift
+//working: push, pop, shift, unshift set value, set property
+//not working: splice
 
 'use strict';
 
@@ -475,7 +467,10 @@ Scope.prototype = {
   bindTemplate: function(selector, templateName, params){
     var holder = this.template.querySelector(selector);
     holder.innerHTML = '';
-    new Scope(templateName, this, params, holder);
+    var that = this;
+    setTimeout(function(){
+      new Scope(templateName, that, params, holder);
+    }, 1);
   },
   // bind an array full of objects to a list of html scope instances
   bindArray: function(selector, templateName, params, path){
@@ -488,10 +483,9 @@ Scope.prototype = {
       scope.arrayScopeSetIndex($index, path);
       return scope;
     }
-    var element = this.template.querySelector(selector);
+    var holder = this.template.querySelector(selector);
     // bind setting the array, each time, bind the array values / length changeing functions
-    var onSet = function(array){  bindArrayToHTML(element, array, subScope) };
-    dataBinding.addOnSet(this, path, onSet);
+    this.cleanUp.push(bindArrayPathToHTML(holder, subScope, this, path));
     //var currentArray = dataBinding.walkAndGet(this, path)();
     //onSet(currentArray);
   },
@@ -511,11 +505,12 @@ Scope.prototype = {
     if(this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this;
-    this.removeIndexBinding = dataBinding.addOnSet(this._parent, arrayPath + '.' + $index, function(x){ 
-      that.$listItem = x; 
+    var that = this, _parent = this._parent, getArray = dataBinding.walkAndGet(_parent, arrayPath + '.' + $index);
+    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
+        that.$listItem = x; 
+      
     });
-    this.$listItem = dataBinding.walkAndGet(this._parent, arrayPath + '.' + $index)();
+    //this.$listItem = getArray();
   }
 }
 

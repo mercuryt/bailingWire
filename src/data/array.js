@@ -27,9 +27,9 @@ function bindToArray(array, actions){
       if(actions.shift) actions.shift();
       if(setIndexFrom) setIndexFrom(0);
     },
-    splice: function(index, count, insert){
+    splice: function(index, count){ // trailing optional paramaters
       length();
-      if(actions.splice) actions.splice(index, count, insert);
+      if(actions.splice) actions.splice.apply(actions, arguments)
       if(setIndexFrom) setIndexFrom(index);
     }
   });

@@ -30,9 +30,9 @@ function bindToArray(array, actions){
       if(actions.shift) actions.shift();
       if(setIndexFrom) setIndexFrom(0);
     },
-    splice: function(index, count, insert){
+    splice: function(index, count){ // trailing optional paramaters
       length();
-      if(actions.splice) actions.splice(index, count, insert);
+      if(actions.splice) actions.splice.apply(actions, arguments)
       if(setIndexFrom) setIndexFrom(index);
     }
   });
@@ -42,11 +42,15 @@ function bindToArray(array, actions){
 //cause a function to be re-evaluated when any member of 'this' within the function body changes
 function computedProperty(_parent, action, callback){
   var script = action.toString(),
-      regex = /(?:this|scope)\.([0-9A-Za-z.]+)(?! *=)/g,
+      regex = /(?:this|scope)\.([0-9A-Za-z\.$]+)/g,
       cleanup = [],
       match;
+  function onChange(){
+    callback(action());
+  }
+  onChange();
   while(match = regex.exec(script))
-    cleanup.push(dataBinding.addOnSet(_parent, match[1], callback));
+    cleanup.push(dataBinding.addOnSet(_parent, match[1], onChange));
   return callArray.bind(null, cleanup);
 }
 

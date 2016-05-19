@@ -40,7 +40,10 @@ Scope.prototype = {
   bindTemplate: function(selector, templateName, params){
     var holder = this.template.querySelector(selector);
     holder.innerHTML = '';
-    new Scope(templateName, this, params, holder);
+    var that = this;
+    setTimeout(function(){ // resolve this after binding elements in current scope, to prevent css selector reaching into child template
+      new Scope(templateName, that, params, holder);
+    }, 1);
   },
   // bind an array full of objects to a list of html scope instances
   bindArray: function(selector, templateName, params, path){
@@ -53,10 +56,9 @@ Scope.prototype = {
       scope.arrayScopeSetIndex($index, path);
       return scope;
     }
-    var element = this.template.querySelector(selector);
+    var holder = this.template.querySelector(selector);
     // bind setting the array, each time, bind the array values / length changeing functions
-    var onSet = function(array){  bindArrayToHTML(element, array, subScope) };
-    dataBinding.addOnSet(this, path, onSet);
+    this.cleanUp.push(bindArrayPathToHTML(holder, subScope, this, path));
     //var currentArray = dataBinding.walkAndGet(this, path)();
     //onSet(currentArray);
   },
@@ -76,11 +78,12 @@ Scope.prototype = {
     if(this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this;
-    this.removeIndexBinding = dataBinding.addOnSet(this._parent, arrayPath + '.' + $index, function(x){ 
-      that.$listItem = x; 
+    var that = this, _parent = this._parent, getArray = dataBinding.walkAndGet(_parent, arrayPath + '.' + $index);
+    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
+        that.$listItem = x; 
+      
     });
-    this.$listItem = dataBinding.walkAndGet(this._parent, arrayPath + '.' + $index)();
+    //this.$listItem = getArray();
   }
 }
 
