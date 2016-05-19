@@ -26,30 +26,37 @@
             {  
               name: "work out",
               text: "pump you up"
-            }
+            },
+            {
+	      name: "shots",
+	      text: "insulin"
+	    }
           ];
           scope.task = scope.tasks[0];
-          scope.bindTemplate('.detailHolder', 'detail', {task: 'task'});
-          //scope.bindArray('.listHolder', 'listing', {task: 'currentTask'}, 'tasks');
-          template.querySelector('button').addEventListener('click', function(){
-            scope.data.tasks.push(scope.task = {name: '', text: ''});
+          scope.bindTemplate('.detailHolder', 'detail', {task: 'task', editMode: 'editMode'});
+          scope.bindArray('.listHolder', 'listing', {currentTask: 'task'}, 'tasks');
+          template.querySelector('button.new').addEventListener('click', function(){
+            scope.tasks.push(scope.task = {name: '', text: ''});
+	    scope.editMode = true;
           });
       };
       </script>
       <ul class="listHolder"></ul>
       <div class="detailHolder"></div>
-      <button>new</button>
+      <button class="new">new</button>
     </div>
 
     <div template="listing">
       <script>
+        window.listing = [];
         templateScripts.listing = function(scope, template){
-          scope.bindElement('span', 'innerHTML','name');
+          listing.push(scope);
+          scope.bindElement('span', 'innerHTML','$listItem.name');
           template.querySelector('button').addEventListener('click', function(){
-            scope.data.task = scope.listItem; // specal property provided to array scopes, listItem
+            scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
           });
-          scope.bindElement('span', 'class', function(){
-            return scope.data.task == scope.listItem? 'selected': null;
+          scope.bindElement('span', 'style.color', function(){
+            return scope.currentTask == scope.$listItem ? 'red': 'black';
           });
       };
       </script>
@@ -61,16 +68,32 @@
     <div template="detail">
       <script>
         templateScripts.detail = function(scope, template){
+          window.detail = scope;
+          scope.bindElement('button', 'innerHTML', function(){
+            return scope.editMode ? 'ok': 'edit';
+          });
+	  template.querySelector('button.toggle').addEventListener('click', function(){
+            scope.editMode = !scope.editMode;
+	    if(scope.editMode)
+	      template.querySelector('input').focus();
+          });
+
+          scope.bindElement('.showMode', 'style.visibility', function(){
+            return scope.editMode ? 'hidden' : '';
+          });
           scope.bindElement('h1', 'innerHTML', 'task.name');
           scope.bindElement('p', 'innerHTML', 'task.text');
-          scope.bindElement('.showMode', 'style.visibility', function(){
-            scope.editMode ? 'hidden' : '';
-          });
+
+
           scope.bindElement('.editMode', 'style.visibility', function(){
-            scope.editMode ? '' : 'hidden';
+            return scope.editMode ? '' : 'hidden';
           });
+          scope.bindElement('input', 'value', 'task.name');
+          scope.bindElement('textarea', 'value', 'task.text');
+
       };
       </script>
+      <button class="toggle"></button>
       <div class="showMode">
         <h1></h1>
         <p></p>
