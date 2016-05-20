@@ -6,7 +6,6 @@ view code is kept near it's html template, without being mixed into it
 
 see example files in test directory for usage
 
-simple example:
 
 <div template="user">
   <script>
@@ -33,5 +32,5 @@ simple example:
   </script>
   <span class="name">
   <span class="accountAge">
-  <button class="profile_link">profile</button>
+  <button class="profile_link"></button>
 </div>
