@@ -8,48 +8,54 @@
     </div>
     <div template="main">
       <script>
-        templateScripts.main = function(scope, template){
-          window.root = scope;
-          scope.bindTemplate('#display', 'display', {'message': 'data.message'});
-          scope.bindTemplate('#edit', 'edit', {'message': 'data.message'});
+        templateScripts.main = function(scope){
+	  // instance template: 
+	  // selector for holder, template name, paramaters ( childScopeKey: 'parentScopePath')
+          scope.tpl('#display', 'display', {'message': 'data.message'});
+          scope.tpl('#edit', 'edit', {'message': 'data.message'});
+	  // set arbitrary data on the scope
 	  scope.data = {message: 'hello'};
           setTimeout(function(){
             scope.data.message += ' world';
           }, 1000);
 	  scope.list = [{name:'aa'}, {name: 'bb'}];
-	  scope.bindArray('ul', 'listing', {}, 'list');
-	  scope.bindElement('#count', 'innerHTML', 'list.length');
+	  // instance array templates
+	  // selector for holder, template name, paramaters, 
+	  scope.array('ul', 'listing', {}, 'list');
+	  // bind html element attribute to data path
+	  // selector for element, attribute path, data path
+	  scope.attr('#count', 'innerHTML', 'list.length');
         };
       </script>
       <div id="display"> </div>
       <div id="edit"> </div>
-      <div id="count"> </div>
+      <div>items in list: <span id="count"> </span></div>
       <ul></ul>
     </div>
     <div template="display">
       <script>
-        templateScripts.display = function(scope, template){
-	  window.display = scope;
-          scope.bindElement('span', 'innerHTML', 'message');
+        templateScripts.display = function(scope){
+          scope.attr('.message', 'innerHTML', 'message');
+	  scope.attr('.charCount', 'innerHTML', function(){
+            return scope.message.length;
+	  });
         };
       </script>
-      <span></span>
+      <span class="message"></span>
+      <span class="charCount"></span>
     </div>
     <div template="edit">
       <script>
-        templateScripts.edit = function(scope, template){
-	  window.edit = scope;
-          scope.bindElement('input', 'value', 'message');
+        templateScripts.edit = function(scope){
+          scope.attr('input', 'value', 'message');
         };
       </script>
       <input type="text" />
     </div>
     <div template="listing">
       <script>
-        templateScripts.listing = function(scope, template){
-	  window.listing = window.listing || [];
-	  window.listing.push(scope);
-          scope.bindElement('span', 'innerHTML', '$listItem.name');
+        templateScripts.listing = function(scope){
+          scope.attr('span', 'innerHTML', '$listItem.name');
         };
       </script>
       <span></span>
