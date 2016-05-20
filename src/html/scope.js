@@ -95,12 +95,12 @@ Scope.prototype = {
 var alias = {
   array: 'bindArray',
   attr: 'bindElement',
-  template: 'bindTemplate',
+  tpl: 'bindTemplate',
   computed: 'bindComputed'
 };
 
 for(var key in alias)
-  Scope.prototype.key
+  Scope.prototype[key] = Scope.prototype[alias[key]];
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);

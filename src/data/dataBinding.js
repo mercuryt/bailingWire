@@ -118,17 +118,25 @@ function addDeepOnSet(_parent, path, action){
 // core of the logic, wrap a member in get/set to allow on set listener
 // should only be invoked by onSet
 function actionOnSet(_parent, key, action){
-  var realValue = _parent[key];
+  // ensure the existance of caches
+  _parent.bailingWire = _parent.bailingWire || {};
+  _parent.bailingWire.value = _parent.bailingWire.value || {};
+  // initalize backing value store ( real value )
+  _parent.bailingWire.value[key] = _parent[key];
   Object.defineProperty(_parent, key, {
     set: function(x){
-      if(realValue !== x){ // replace != with !deep equal?
-        realValue = x; 
+      // if value has changed
+      if(_parent.bailingWire.value[key] !== x){ // replace != with !deep equal?
+        // set real value
+        _parent.bailingWire.value[key] = x; 
+	// call listeners
         action.call(this, x);
       }
       return x;
     },
     get: function(){
-      return realValue;
+      // get real value
+      return _parent.bailingWire.value[key];
     }
   });
 }
@@ -145,17 +153,19 @@ function addOnSet(_parent, key, action){
     console.error('bad key ', key);
   if(key == 'length' && Array.isArray(_parent))
     return bindToArray(_parent, {length: action});
-  _parent.onSet = _parent.onSet || {};
-  if(!_parent.onSet[key]){
-    _parent.onSet[key] = [];
+  // ensure the existance of caches
+  _parent.bailingWire = _parent.bailingWire || {};
+  _parent.bailingWire.onSet = _parent.bailingWire.onSet || {};
+  if(!_parent.bailingWire.onSet[key]){
+    _parent.bailingWire.onSet[key] = [];
     actionOnSet(_parent, key, function(value){
-      callArray(_parent.onSet[key], [value]);
+      callArray(_parent.bailingWire.onSet[key], [value]);
     });
   }
-  _parent.onSet[key].push(action);
+  _parent.bailingWire.onSet[key].push(action);
   return (function(){
     //remove action from list
-    _parent.onSet[key].splice(_parent.onSet[key].indexOf(action), 1);
+    _parent.bailingWire.onSet[key].splice(_parent.bailingWire.onSet[key].indexOf(action), 1);
   });
 }
 

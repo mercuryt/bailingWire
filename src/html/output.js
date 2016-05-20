@@ -81,6 +81,36 @@ function bindArrayPathToHTML(holder, template, _parent, path){
 //working: push, pop, shift, unshift set value, set property
 //not working: splice
 
+function ChainableSelector(selector, scope){
+  this.selector = selector;
+  this.scope = scope;
+}
+
+ChainableSelector.prototype = {
+  attr: function(attributePath, dataPath){
+     this.scope.bindElement(this.selector, attributePath, dataPath);
+     return this;
+  },
+  template: function(templateName, params){
+     this.scope.bindTemplate(this.selector, templateName, params);
+     return this;
+  },
+  array: function(templateName, params, dataPath){
+    this.scope.bindArray(this.selector, templateName, params, dataPath);
+    return this;
+  },
+  on: function(eventName, callback){
+    this.scope.on(selector, eventName, callback);
+    return this;
+  },
+  focus: function(){
+    this.getElement().focus();
+  },
+  getElement: function(){
+    return this.scope.template.querySelector(selector);
+  }
+}
+
 'use strict';
 
 function bindElementAttributePathToObjectPath(element, attributePath, obj, path){
@@ -151,7 +181,7 @@ Scope.prototype = {
     var holder = this.template.querySelector(selector);
     holder.innerHTML = '';
     var that = this;
-    setTimeout(function(){
+    setTimeout(function(){ // resolve this after binding elements in current scope, to prevent css selector reaching into child template
       new Scope(templateName, that, params, holder);
     }, 1);
   },
@@ -188,14 +218,29 @@ Scope.prototype = {
     if(this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this, _parent = this._parent, getArray = dataBinding.walkAndGet(_parent, arrayPath + '.' + $index);
+    var that = this, _parent = this._parent;
     this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
         that.$listItem = x; 
       
     });
-    //this.$listItem = getArray();
+  },
+  $: function(selector){
+    return new ChainableSelector(selector, this);
+  },
+  on: function(selector, eventName, callback){
+    this.template.querySelector(selector).addEventListener(eventName, callback);
   }
 }
+
+var alias = {
+  array: 'bindArray',
+  attr: 'bindElement',
+  tpl: 'bindTemplate',
+  computed: 'bindComputed'
+};
+
+for(var key in alias)
+  Scope.prototype[key] = Scope.prototype[alias[key]];
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);
@@ -210,7 +255,7 @@ function scopeCss(tag, templateName){
 
 'use strict';
 // find and record templates
-// somehow running twice?? 4 scopes in items list
+window.templateScripts = {};
 var templates = {};
 var hasSetUp = false;
 function setup(){

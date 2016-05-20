@@ -46,7 +46,7 @@ function bindToArray(array, actions){
 //cause a function to be re-evaluated when any member of 'this' within the function body changes
 function computedProperty(_parent, action, callback){
   var script = action.toString(),
-      regex = /(?:this|scope)\.([0-9A-Za-z\.$]+)/g,
+      regex = /(?:this|scope)\.([0-9A-Za-z\.$_]+)/g,
       cleanup = [],
       match;
   function onChange(){
@@ -178,17 +178,25 @@ function addDeepOnSet(_parent, path, action){
 // core of the logic, wrap a member in get/set to allow on set listener
 // should only be invoked by onSet
 function actionOnSet(_parent, key, action){
-  var realValue = _parent[key];
+  // ensure the existance of caches
+  _parent.bailingWire = _parent.bailingWire || {};
+  _parent.bailingWire.value = _parent.bailingWire.value || {};
+  // initalize backing value store ( real value )
+  _parent.bailingWire.value[key] = _parent[key];
   Object.defineProperty(_parent, key, {
     set: function(x){
-      if(realValue !== x){ // replace != with !deep equal?
-        realValue = x; 
+      // if value has changed
+      if(_parent.bailingWire.value[key] !== x){ // replace != with !deep equal?
+        // set real value
+        _parent.bailingWire.value[key] = x; 
+	// call listeners
         action.call(this, x);
       }
       return x;
     },
     get: function(){
-      return realValue;
+      // get real value
+      return _parent.bailingWire.value[key];
     }
   });
 }
@@ -205,17 +213,19 @@ function addOnSet(_parent, key, action){
     console.error('bad key ', key);
   if(key == 'length' && Array.isArray(_parent))
     return bindToArray(_parent, {length: action});
-  _parent.onSet = _parent.onSet || {};
-  if(!_parent.onSet[key]){
-    _parent.onSet[key] = [];
+  // ensure the existance of caches
+  _parent.bailingWire = _parent.bailingWire || {};
+  _parent.bailingWire.onSet = _parent.bailingWire.onSet || {};
+  if(!_parent.bailingWire.onSet[key]){
+    _parent.bailingWire.onSet[key] = [];
     actionOnSet(_parent, key, function(value){
-      callArray(_parent.onSet[key], [value]);
+      callArray(_parent.bailingWire.onSet[key], [value]);
     });
   }
-  _parent.onSet[key].push(action);
+  _parent.bailingWire.onSet[key].push(action);
   return (function(){
     //remove action from list
-    _parent.onSet[key].splice(_parent.onSet[key].indexOf(action), 1);
+    _parent.bailingWire.onSet[key].splice(_parent.bailingWire.onSet[key].indexOf(action), 1);
   });
 }
 
@@ -272,7 +282,8 @@ function callArray(array, args){
 
 //onCall: overide methods to call actions when a method is exectuted, also execute the method as usual
 function onCall(obj, actions){
-  var listeners = obj.onCall || {},
+  obj.bailingWire = obj.bailingWire || {};
+  var listeners = obj.bailingWire.onCall || {},
       cleanUp = [];
    Object.keys(actions).forEach(function(key){
      if(!listeners[key]){
@@ -288,10 +299,10 @@ function onCall(obj, actions){
        listeners[key].splice(listeners[key].indexOf(actions[key], 1));
      });
    });
-   if(!obj.onCall){
-     obj.onCall = listeners;
-     obj.cleanCopy = cleanCopy;
-     obj.keys = realKeys;
+   if(!obj.bailingWire.onCall){
+     obj.bailingWire.onCall = listeners;
+     obj.bailingWire.cleanCopy = cleanCopy;
+     obj.bailingWire.keys = realKeys;
    }
    return stop = (function(){// remove the listeners added durring this invocation
       callArray(cleanUp);
@@ -300,7 +311,7 @@ function onCall(obj, actions){
 
 function cleanCopy(){ // return a copy of this array without onCall 
    var obj = this;
-   return obj.realKeys().
+   return obj.bailingWire.keys().
      map(function(key){
        return obj[key];
      });
@@ -310,7 +321,7 @@ function realKeys(){
   var obj = this;
    return Object.keys(obj).
      filter(function(key) {
-       return !obj.onCall[key] && ['onCall', 'cleanCopy', 'keys'].indexOf(key) == -1;
+       return !obj.bailingWire.onCall[key] && key != 'bailingWire'
      });
 }
 
@@ -398,6 +409,36 @@ function bindArrayPathToHTML(holder, template, _parent, path){
 //working: push, pop, shift, unshift set value, set property
 //not working: splice
 
+function ChainableSelector(selector, scope){
+  this.selector = selector;
+  this.scope = scope;
+}
+
+ChainableSelector.prototype = {
+  attr: function(attributePath, dataPath){
+     this.scope.bindElement(this.selector, attributePath, dataPath);
+     return this;
+  },
+  template: function(templateName, params){
+     this.scope.bindTemplate(this.selector, templateName, params);
+     return this;
+  },
+  array: function(templateName, params, dataPath){
+    this.scope.bindArray(this.selector, templateName, params, dataPath);
+    return this;
+  },
+  on: function(eventName, callback){
+    this.scope.on(selector, eventName, callback);
+    return this;
+  },
+  focus: function(){
+    this.getElement().focus();
+  },
+  getElement: function(){
+    return this.scope.template.querySelector(selector);
+  }
+}
+
 'use strict';
 
 function bindElementAttributePathToObjectPath(element, attributePath, obj, path){
@@ -468,7 +509,7 @@ Scope.prototype = {
     var holder = this.template.querySelector(selector);
     holder.innerHTML = '';
     var that = this;
-    setTimeout(function(){
+    setTimeout(function(){ // resolve this after binding elements in current scope, to prevent css selector reaching into child template
       new Scope(templateName, that, params, holder);
     }, 1);
   },
@@ -505,14 +546,29 @@ Scope.prototype = {
     if(this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this, _parent = this._parent, getArray = dataBinding.walkAndGet(_parent, arrayPath + '.' + $index);
+    var that = this, _parent = this._parent;
     this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
         that.$listItem = x; 
       
     });
-    //this.$listItem = getArray();
+  },
+  $: function(selector){
+    return new ChainableSelector(selector, this);
+  },
+  on: function(selector, eventName, callback){
+    this.template.querySelector(selector).addEventListener(eventName, callback);
   }
 }
+
+var alias = {
+  array: 'bindArray',
+  attr: 'bindElement',
+  tpl: 'bindTemplate',
+  computed: 'bindComputed'
+};
+
+for(var key in alias)
+  Scope.prototype[key] = Scope.prototype[alias[key]];
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);
@@ -527,7 +583,7 @@ function scopeCss(tag, templateName){
 
 'use strict';
 // find and record templates
-// somehow running twice?? 4 scopes in items list
+window.templateScripts = {};
 var templates = {};
 var hasSetUp = false;
 function setup(){
