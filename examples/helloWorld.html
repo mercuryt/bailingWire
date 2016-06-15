@@ -1,0 +1,64 @@
+<html>
+  <head>
+   <title>bailing wire hello world</title>
+    <script type="text/javascript" src="../src/output.js"></script>
+  </head>
+  <body>
+    <div bw-root="main">
+    </div>
+    <div template="main">
+      <script>
+        templateScripts.main = function(scope){
+	  // instance template: 
+	  // selector for holder, template name, paramaters ( childScopeKey: 'parentScopePath')
+          scope.tpl('#display', 'display', {'message': 'data.message'});
+          scope.tpl('#edit', 'edit', {'message': 'data.message'});
+	  // set arbitrary data on the scope
+	  scope.data = {message: 'hello'};
+          setTimeout(function(){
+            scope.data.message += ' world';
+          }, 1000);
+	  scope.list = [{name:'aa'}, {name: 'bb'}];
+	  // instance array templates
+	  // selector for holder, template name, paramaters, 
+	  scope.array('ul', 'listing', {}, 'list');
+	  // bind html element attribute to data path
+	  // selector for element, attribute path, data path
+	  scope.attr('#count', 'innerHTML', 'list.length');
+        };
+      </script>
+      <div id="display"> </div>
+      <div id="edit"> </div>
+      <div>items in list: <span id="count"> </span></div>
+      <ul></ul>
+    </div>
+    <div template="display">
+      <script>
+        templateScripts.display = function(scope){
+          scope.attr('.message', 'innerHTML', 'message');
+	  scope.attr('.charCount', 'innerHTML', function(){
+            return scope.message.length;
+	  });
+        };
+      </script>
+      <span class="message"></span>
+      <span class="charCount"></span>
+    </div>
+    <div template="edit">
+      <script>
+        templateScripts.edit = function(scope){
+          scope.attr('input', 'value', 'message');
+        };
+      </script>
+      <input type="text" />
+    </div>
+    <div template="listing">
+      <script>
+        templateScripts.listing = function(scope){
+          scope.attr('span', 'innerHTML', '$listItem.name');
+        };
+      </script>
+      <span></span>
+    </div>
+  </body
+</html>

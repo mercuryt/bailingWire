@@ -1,0 +1,103 @@
+<html>
+  <head>
+   <title>bailing wire to do</title>
+    <style>
+      .selected{
+          font-weight: bold;
+      }
+    </style>
+    <script type="text/javascript" src="../src/output.js"></script>
+  </head>
+  <body>
+    <div bw-root="main"> </div>
+
+    <div template="main">
+      <script>
+        templateScripts.main = function(scope){
+          scope.tasks = [
+            {  
+              name: "work out",
+              text: "pump you up"
+            },
+            {
+	      name: "shots",
+	      text: "insulin"
+	    }
+          ];
+          scope.task = scope.tasks[0];
+	  scope.removeTask = function(task){
+             scope.tasks.splice(scope.tasks.indexOf(task), 1);
+	  };
+          scope.$('div').template('detail', {task: 'task', editMode: 'editMode'});
+          scope.$('ul').array('listing', {currentTask: 'task', removeTask: 'removeTask'}, 'tasks');
+          scope.$('button').on('click', function(){
+            scope.tasks.push(scope.task = {name: '', text: ''});
+	    scope.editMode = true;
+          });
+      };
+      </script>
+      <ul></ul>
+      <div></div>
+      <button>new</button>
+    </div>
+
+    <div template="listing">
+      <script>
+        templateScripts.listing = function(scope){
+          scope.$('button.select').
+	    attr('innerHTML','$listItem.name').
+	    on('click', function(){
+              scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
+            });
+          scope.$('span').attr('style.color', function(){
+            return scope.currentTask == scope.$listItem ? 'red': 'black';
+          });
+	  scope.$('button.remove').on('click', function(){
+            scope.removeTask(scope.$listItem);
+	  });
+      };
+      </script>
+      <button class="select"></button>
+      <button class="remove"></button>
+      
+    </div>
+
+    <div template="detail">
+      <script>
+        templateScripts.detail = function(scope){
+          scope.$('button').
+	    attr('innerHTML', function(){
+              return scope.editMode ? 'ok': 'edit';
+            }).on('button.toggle', 'click', function(){
+              scope.editMode = !scope.editMode;
+	      if(scope.editMode)
+	        scope.$('input').focus();
+            });
+
+          scope.$('.showMode').attr('style.visibility', function(){
+            return scope.editMode ? 'hidden' : '';
+          });
+          scope.$('h1').attr('innerHTML', 'task.name');
+          scope.$('p').attr('innerHTML', 'task.text');
+
+
+          scope.$('.editMode').attr('style.visibility', function(){
+            return scope.editMode ? '' : 'hidden';
+          });
+          scope.$('input').attr('value', 'task.name');
+          scope.$('textarea').attr('value', 'task.text');
+
+      };
+      </script>
+      <button class="toggle"></button>
+      <div class="showMode">
+        <h1></h1>
+        <p></p>
+      </div>
+      <div class="editMode">
+        <input type="text"></input>
+        <textarea></textarea>
+      </div>
+    </div>
+  </body
+</html>

@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <title>bailingWire benchmark</title>
+    <script type="text/javascript" src="../src/output.js"></script>
+    <style>
+     [template="item"] span{
+       position: relative;
+       float: left;
+       margin: 8px;
+       width: 20px;
+       height: 20px;
+     }
+    </style>
+  </head>
+  <body>
+    <div bw-root="main"> </div>
+
+    <div template="main">
+      <script>
+        templateScripts.main = function(scope){
+           scope.value = 0;
+           setInterval(function(){ 
+             scope.value ++;
+           }, 5);
+           scope.items = [];
+           for(var i = 0; i < 100; i++){
+             scope.items.push({});
+           }
+           scope.$('.holder').array('item', {value: 'value'}, 'items');
+           scope.$('.current').attr('innerHTML', 'value');
+        };
+	function numberToColor(x){
+           var output = x.toString(16);
+	   while(output.length < 3)
+	     output = '0' + output;
+	   return  '#' + output;
+	}
+      </script>
+      <div class="holder"></div>
+      <span class="current"></span>
+    </div>
+    <div template="item">
+      <script>
+        templateScripts.item = function(scope){
+          scope.$('span').
+	    attr('innerHTML', function(){ return scope.value % 100; }).
+	    attr('style.top', function(){
+	     
+              value = Math.sin( scope.value / 10) * 10;
+              return scope.$index % 2 == 0 ? value : value * -1;
+            }).
+            attr('style.left', function(){
+              value = Math.cos( scope.value / 10) * 10;
+              return scope.$index % 2 == 0 ? value : value * -1;
+            }).
+            attr('style.backgroundColor', function(){
+              value = scope.value % 255;
+              return numberToColor(scope.$index % 2 == 0 ? value : value / 2);
+            }).
+	    attr('style.color', function(){
+              value = scope.value % 55 + 200;
+              return numberToColor(scope.$index % 2 == 0 ? value / 2 : value);
+	    }).
+	    attr('style.borderRadius', function(){
+              value = scope.$index % 2 == 0 ? scope.value % 100 : scope.value % 10;
+	      return value + 'px';
+	    });
+        };
+      </script>
+      <span></span>
+    </div>
+  </body>
+</html>
