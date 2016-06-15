@@ -54,123 +54,23 @@ function computedProperty(_parent, action, callback){
   return callArray.bind(null, cleanup);
 }
 
-// utility
-function copyArray(x){
-  return x.map(function(x){return x;});
+// main user interface
+// add on set to parent with path string
+function addOnSetInterface(_parent, path, action){
+  return durableOnSet(_parent, path.split('.'), action);
 }
 
-function callArray(a, args){
-  for(var i = 0; i < a.length; i++)
-    a[i].appy(null, args || []);
+// bind two object paths together
+function mutualBind(a, aPath, b, bPath){
+  var setA = walkAndSet(a, aPath),
+      setB = walkAndSet(b, bPath),
+      cleanUp = [ // return cleanUp array
+    durableOnSet(a, aPath.split('.'), setB),
+    durableOnSet(b, bPath.split('.'), setA)
+  ];
+  return cleanUp;
 }
 
-function makePrivateKey(key){
-  return 'ಠ_ಠ' + key;
-}
-// follow object path ( like user.name.first ) to last item and return it
-function endOfPath(_parent, path){
-  var i = 0, output = _parent;
-  while ( i < path.length){
-    if(!output[path[i]])
-      return undefined;
-    output = output[path[i]];
-    i++;
-  }
-  return output;
-}
-
-function walkAndSet(object, path){
-  var path = path.split('.'),
-      key = path.pop();
-  return function(x, allowNotExist){
-    var end = endOfPath(object, path);
-    if(!end)
-      if(allowNotExist)
-        return false;
-      else
-        console.error('attempted to set a path that does not exist ', object, path);
-    else
-      return end[key] = x;
-  }
-}
-
-function walkAndGet(object, path){
-  var path = path.split('.'),
-      key = path.pop();
-  return function(){
-    var end = endOfPath(object, path);
-    if(!end)
-      return undefined;
-    return end[key];
-  }
-}
-
-// apply an on change action to an object path
-// action is 'durable', meaning any object in the path can be deleted and recreated without removing the listener
-function durablyApplyFunctionToPath(_parent, path, action){
-  path = copyArray(path);
-  var key = path.pop(), pathPart, nextNode, cleanUp = [], currentParent = _parent;
-  while(path.length){
-    pathPart = path[0]; // take rather then shift, we still may need the path
-    nextNode = currentParent[pathPart];
-    if(!nextNode){ // thing does not currently exist, but a parent will set up it's listeners when it gets created
-        action(undefined);
-        return false;
-    }
-    // whenever a parent is set, regenerate the listener on the target, and any intermediate nodes
-    cleanUp.push(addOnSet(currentParent, pathPart, function(pathCopy){
-        return function(value){
-          cleanUp.push(buildDurableGetSetOnPath(currentParent, path, action));
-        }
-      }(copyArray(pathCopy))// send a copy of the current path
-    )); 
-    path.shift();
-    currentParent = nextNode;
-  }
-  
-  cleanUp.push(action(currentParent, key));
-  return callArray.bind(null, cleanUp);
-}
-// an object to be returned
-function DeepOnSetReturn(_parent, path, stop){
-  this._parent = _parent;
-  this.path = copyArray(path);
-  this.key = this.path.pop();
-  this.stop = stop;
-}
-
-DeepOnSetReturn.prototype = {
-  set: function(x){
-    endOfPath(this._parent, this.path)[key] = x;
-  }
-}
-
-// set an action on a variable within a data structure
-// pass the path as a string or array
-// regenerate parent bindings on change as needed
-function addDeepOnSet(_parent, path, action){
-  var pathParts, pathCopy;
-  if(typeof(path) == 'string'){
-    pathParts = path.split('.');
-    pathCopy = path.split('.');
-  } else{
-    pathParts = [];
-    pathCopy = [];
-    for (var i = 0; i < path.length; i ++){
-      pathParts.push(path[i]);
-      pathCopy.push(path[i]);
-    }
-    pathParts = copyArray(path);
-    pathCopy = copyArray(path);
-  }
-  var cleanUp = durablyApplyFunctionToPath(_parent, pathCopy, function(directParent, key){
-    if(directParent){
-      action(directParent, key);
-      addOnSet(directParent, key, action);
-    }
-  });
-  return new DeepOnSetReturn(_parent, pathParts, cleanUp);
-}
 // core of the logic, wrap a member in get/set to allow on set listener
 // should only be invoked by onSet
 function actionOnSet(_parent, key, action){
@@ -197,27 +97,29 @@ function actionOnSet(_parent, key, action){
   });
 }
 
-// main user interface
-
-function addOnSetInterface(_parent, key, action){
-  return durableOnSet(_parent, key.split('.'), action);
-}
-
-
+// handles binding to single item paths
 function addOnSet(_parent, key, action){
+  // debug test: keys, not paths
   if(key.indexOf('.') != -1)
     console.error('bad key ', key);
+  // detect and divert for array parent
   if(key == 'length' && Array.isArray(_parent))
     return bindToArray(_parent, {length: action});
   // ensure the existance of caches
   _parent.bailingWire = _parent.bailingWire || {};
   _parent.bailingWire.onSet = _parent.bailingWire.onSet || {};
+  // add an onSet callback for the property if none exists
   if(!_parent.bailingWire.onSet[key]){
+    // add action holder
     _parent.bailingWire.onSet[key] = [];
-    actionOnSet(_parent, key, function(value){
+    // define action callback
+    var onSet = function(value){
       callArray(_parent.bailingWire.onSet[key], [value]);
-    });
+    };
+    // add action callback
+    actionOnSet(_parent, key, onSet);
   }
+  // add action to onSet callback array
   _parent.bailingWire.onSet[key].push(action);
   return (function(){
     //remove action from list
@@ -225,34 +127,46 @@ function addOnSet(_parent, key, action){
   });
 }
 
-function mutualBind(a, aPath, b, bPath){
-  var setA = walkAndSet(a, aPath),
-      setB = walkAndSet(b, bPath),
-      aValue = walkAndGet(a, aPath)(),
-      cleanUp = [ // return cleanUp array
-    durableOnSet(a, aPath.split('.'), setB),
-    durableOnSet(b, bPath.split('.'), setA)
-  ];
-  return cleanUp;
-}
-
-// recursive experiment
-function durableOnSet(_parent, path, action){
+// recursively walk path and bind regeneration listiners at each step
+// add on set to end of path
+function durableOnSet(_parent, path, action, cleanUp){
+  cleanUp = cleanUp || [];
+  // this is the end of the path, add the real ( user requested ) binding
   if(path.length == 1){
     // run the action now, if the target exists
-    if(_parent[path[0]] !== undefined)
+    if(_parent[path[0]] !== undefined){
       action(_parent[path[0]]);
-    return addOnSet(_parent, path[0], action);
-  }else{
+    }
+    cleanUp.push(addOnSet(_parent, path[0], action));
+  } else { 
     var pathCopy = copyArray(path),
-        key = pathCopy.shift(),
-	cleanUp = [];
-    cleanUp.push(addOnSet(_parent, key, function(value){
-      if(value)
-        durableOnSet(value, pathCopy, action);
-    }));
-    if(_parent[key] !== undefined)
-      cleanUp.push(durableOnSet(_parent[key], pathCopy, action));
+        key = pathCopy.shift();
+    // follow path down if the next level currently exists
+    if(_parent[key] !== undefined){
+      if( isPrimitive(_parent[key]) ){
+        // next level of path is a primitive
+        //  combine remaining path into compound key
+        var combinedPath = path.join('.');
+        //  define onSet action to be bound to current parent but take it's value from the primitive's property
+        var remoteAction = function(primitiveValue){
+           var value = endOfPath(_parent, path);
+           action(value);
+        };
+        //  attach 'jump down' binding
+        cleanUp.push(addOnSet(_parent, key, remoteAction));
+      } else {
+        // current value is not primitive, recurse as normal
+        cleanUp.push(durableOnSet(_parent[key], pathCopy, action, cleanUp));
+      }
+    }
+    // define onset action: regenerative binding
+    // regenerative binding: calls durable on set when any member of the path is replaced, and rebuilds the bindings on the new values
+    // also allows binding to paths that don't yet exist
+    var onSet = function(value){
+      if(value !== undefined && !isPrimitive(value))
+        durableOnSet(value, pathCopy, action, cleanUp);
+    };
+    cleanUp.push(addOnSet(_parent, key, onSet));
   }
   return callArray.bind(null, cleanUp);
 }
@@ -319,6 +233,83 @@ function realKeys(){
      filter(function(key) {
        return !obj.bailingWire.onCall[key] && key != 'bailingWire'
      });
+}
+
+// utility
+function copyArray(x){
+  return x.map(function(x){return x;});
+}
+
+function callArray(a, args){
+  for(var i = 0; i < a.length; i++)
+    a[i].apply(null, args || []);
+}
+
+function makePrivateKey(key){
+  return 'ಠ_ಠ' + key;
+}
+// follow object path ( like user.name.first ) to last item and return it
+function endOfPath(_parent, path){
+  var i = 0, output = _parent;
+  while ( i < path.length){
+    if(!output[path[i]])
+      return undefined;
+    output = output[path[i]];
+    i++;
+  }
+  return output;
+}
+
+function walkAndSet(object, path){
+  var path = path.split('.'),
+      key = path.pop();
+  return function(x, allowNotExist){
+    var end = endOfPath(object, path);
+    if(!end)
+      if(allowNotExist)
+        return false;
+      else
+        console.error('attempted to set a path that does not exist ', object, path);
+    else
+      return end[key] = x;
+  }
+}
+
+function walkAndGet(object, path){
+  var path = path.split('.'),
+      key = path.pop();
+  return function(){
+    var end = endOfPath(object, path);
+    if(!end)
+      return undefined;
+    return end[key];
+  }
+}
+
+function isPrimitive(value){
+  return typeof(value) != 'object';
+}
+
+function WrappedPrimitive(value){
+  this.value = value;
+}
+
+function actionOnSetPrimitive(_parent, key, action){
+  _parent.bailingWire = _parent.bailingWire || {};
+  _parent.bailingWire.value = _parent.bailingWire || {};
+  _parent.bailingWire.value[key] = new WrappedPrimitive(_parent[key]);
+  Object.defineProperty(_parent, key, {
+    get: function() { 
+      return _parent.bailingWire.value[key].value; 
+    },
+    set: function(x) {
+      if(_parint.bailingWire.value[key].value != x){
+        _parint.bailingWire.value[key].value = x;
+        action(x);
+      }
+      return x;
+    }
+  });
 }
 
 
