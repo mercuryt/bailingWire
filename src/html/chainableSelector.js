@@ -17,13 +17,13 @@ ChainableSelector.prototype = {
     return this;
   },
   on: function(eventName, callback){
-    this.scope.on(selector, eventName, callback);
+    this.scope.on(this.selector, eventName, callback);
     return this;
   },
   focus: function(){
     this.getElement().focus();
   },
   getElement: function(){
-    return this.scope.template.querySelector(selector);
+    return this.scope.template.querySelector(this.selector);
   }
 }
