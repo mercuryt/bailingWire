@@ -68,7 +68,7 @@ Scope.prototype = {
     //var currentArray = dataBinding.walkAndGet(this, path)();
     //onSet(currentArray);
   },
-  bindElementComputed(selector, attribute, action) {
+  bindElementComputed: function(selector, attribute, action) {
     // create a key name ( a single step path )
     var path = dataBinding.makePrivateKey(selector + '|' + attribute);
     // bind the computed property to the key name
