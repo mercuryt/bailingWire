@@ -50,5 +50,5 @@ function walkAndGet(object, path){
 }
 
 function isPrimitive(value){
-  return typeof(value) != 'object';
+  return typeof(value) != 'object' || value === null;
 }
