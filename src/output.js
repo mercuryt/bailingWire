@@ -138,7 +138,7 @@ function durableOnSet(_parent, path, action, cleanUp){
   // this is the end of the path, add the real ( user requested ) binding
   if(path.length == 1){
     // run the action now, if the target exists
-    if(_parent[path[0]] !== undefined){
+    if(_parent && _parent[path[0]] !== undefined){ // not sure that '_parent &&' should be there
       action(_parent[path[0]]);
     }
     cleanUp.push(addOnSet(_parent, path[0], action));
@@ -419,14 +419,14 @@ ChainableSelector.prototype = {
     return this;
   },
   on: function(eventName, callback){
-    this.scope.on(selector, eventName, callback);
+    this.scope.on(this.selector, eventName, callback);
     return this;
   },
   focus: function(){
     this.getElement().focus();
   },
   getElement: function(){
-    return this.scope.template.querySelector(selector);
+    return this.scope.template.querySelector(this.selector);
   }
 }
 
@@ -457,17 +457,26 @@ htmlBinding = {
   }
 }
 
-function Scope(templateName, _parent, params, holder){
-  this.template = templates[templateName].cloneNode(true) // deep
+function scopeCss(tag, templateName){
+  var text = tag.innerHTML;
+  var regex = /([\S{].*?{.*?})/g;
+  var newText = text.replace(regex, '[template="' + templateName + '"]');
+}
+
+function Scope(templateName, _parent, params, holder) {
+  if (!templates[templateName]) {
+    console.error("unknown template ", templateName);
+  }
+  this.template = templates[templateName].cloneNode(true); // deep
   this._parent = _parent;
   this.params = params;
   this.cleanUp = [];
-  if(_parent)
-    for(var key in params)
+  if (_parent)
+    for (var key in params)
       this.bindData(key, _parent, params[key]); // params format is {localPath: parentPath}
 
-  templateScripts[templateName].call(this.template, this, this.template);//provide template as argument as well as reciever for ease of use in callbacks
-  if(holder){
+  templateScripts[templateName].call(this.template, this, this.template); //provide template as argument as well as reciever for ease of use in callbacks
+  if (holder) {
     holder.innerHTML = '';
     holder.appendChild(this.template);
   }
@@ -475,42 +484,45 @@ function Scope(templateName, _parent, params, holder){
 
 Scope.prototype = {
   // bind a path on this scope to a path on another object
-  bindData: function(path, other, otherPath){
+  bindData: function(path, other, otherPath) {
     this.cleanUp.push(dataBinding.mutual(
       other, otherPath,
       this, path
     ));
   },
   // bind computed attribute
-  bindComputed: function(path, action){
+  bindComputed: function(path, action) {
     var that = this;
-    this.cleanUp.push(dataBinding.computedProperty(this, action, function(x){
+    this.cleanUp.push(dataBinding.computedProperty(this, action, function(x) {
       that[path] = x;
     }));
   },
   // bind a path on this scope to an attribute of an html element in the scope, identified by selector
-  bindElement: function(selector, attribute, path){
-    if(isFunction(path)) // bind computed property
+  bindElement: function(selector, attribute, path) {
+    if (isFunction(path)) // bind computed property
       this.bindElementComputed(selector, attribute, path);
-    else
-      bindElementAttributePathToObjectPath(this.template.querySelector(selector), attribute, this, path);
+    else {
+      var element = this.template.querySelector(selector);
+      if (!element) console.error("selector " + selector + " not found");
+      bindElementAttributePathToObjectPath(element, attribute, this, path);
+    }
   },
   // build a new scope with the named template, link properties as specified in params, insert into holder identified by selector
-  bindTemplate: function(selector, templateName, params){
+  bindTemplate: function(selector, templateName, params) {
     var holder = this.template.querySelector(selector);
     holder.innerHTML = '';
     var that = this;
-    setTimeout(function(){ // resolve this after binding elements in current scope, to prevent css selector reaching into child template
+    setTimeout(function() { // resolve this after binding elements in current scope, to prevent css selector reaching into child template
       new Scope(templateName, that, params, holder);
     }, 1);
   },
   // bind an array full of objects to a list of html scope instances
-  bindArray: function(selector, templateName, params, path){
+  bindArray: function(selector, templateName, params, path) {
     var fetchArray = dataBinding.walkAndGet(this, path);
     var that = this;
     // the function which builds each scope for the array members
     // array within here is immutable
-    function subScope($index, array){
+    function subScope($index, array) {
       var scope = new Scope(templateName, that, params);
       scope.arrayScopeSetIndex($index, path);
       return scope;
@@ -521,7 +533,7 @@ Scope.prototype = {
     //var currentArray = dataBinding.walkAndGet(this, path)();
     //onSet(currentArray);
   },
-  bindElementComputed(selector, attribute, action){
+  bindElementComputed: function(selector, attribute, action) {
     // create a key name ( a single step path )
     var path = dataBinding.makePrivateKey(selector + '|' + attribute);
     // bind the computed property to the key name
@@ -529,27 +541,28 @@ Scope.prototype = {
     this.cleanUp.push(dataBinding.computedProperty(this, action, setAttribute));
   },
   //to be used when a scope representing an array item changes it's index
-  arrayScopeSetIndex: function($index, arrayPath){
-    if(this.$index == $index)
+  arrayScopeSetIndex: function($index, arrayPath) {
+    if (this.$index == $index)
       return;
     this.$index = $index;
     //remove old listItemBinding
-    if(this.removeIndexBinding)
+    if (this.removeIndexBinding)
       this.removeIndexBinding();
     // bindListItem
-    var that = this, _parent = this._parent;
-    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x){ 
-        that.$listItem = x; 
-      
+    var that = this,
+      _parent = this._parent;
+    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x) {
+      that.$listItem = x;
+
     });
   },
-  $: function(selector){
+  $: function(selector) {
     return new ChainableSelector(selector, this);
   },
-  on: function(selector, eventName, callback){
+  on: function(selector, eventName, callback) {
     this.template.querySelector(selector).addEventListener(eventName, callback);
   }
-}
+};
 
 var alias = {
   array: 'bindArray',
@@ -558,18 +571,11 @@ var alias = {
   computed: 'bindComputed'
 };
 
-for(var key in alias)
+for (var key in alias)
   Scope.prototype[key] = Scope.prototype[alias[key]];
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);
-}
-
-
-function scopeCss(tag, templateName){
-  var text = tag.innerHTML;
-  var regex = /([\S{].*?{.*?})/g;
-  var newText = text.replace(regex, '[template="' + templateName + '"]');
 }
 
 'use strict';
