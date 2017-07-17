@@ -78,7 +78,7 @@ function durableOnSet(_parent, path, action, cleanUp){
   // this is the end of the path, add the real ( user requested ) binding
   if(path.length == 1){
     // run the action now, if the target exists
-    if(_parent && _parent[path[0]] !== undefined){ // not sure that '_parent &&' should be there
+    if(_parent[path[0]] !== undefined){
       action(_parent[path[0]]);
     }
     cleanUp.push(addOnSet(_parent, path[0], action));
