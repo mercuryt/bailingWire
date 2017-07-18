@@ -75,6 +75,9 @@ Scope.prototype = {
     var setAttribute = dataBinding.walkAndSet(this.template.querySelector(selector), attribute);
     this.cleanUp.push(dataBinding.computedProperty(this, action, setAttribute));
   },
+  bindActionOnSet: function(path, action) {
+    this.cleanUp.push(dataBinding.addOnSet(this, path, action));
+  },
   //to be used when a scope representing an array item changes it's index
   arrayScopeSetIndex: function($index, arrayPath) {
     if (this.$index == $index)
