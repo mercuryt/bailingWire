@@ -75,7 +75,7 @@ Scope.prototype = {
     var setAttribute = dataBinding.walkAndSet(this.template.querySelector(selector), attribute);
     this.cleanUp.push(dataBinding.computedProperty(this, action, setAttribute));
   },
-  bindActionOnSet: function(path, action) {
+  onSet: function(path, action) {
     this.cleanUp.push(dataBinding.addOnSet(this, path, action));
   },
   //to be used when a scope representing an array item changes it's index
@@ -89,7 +89,7 @@ Scope.prototype = {
     // bindListItem
     var that = this,
       _parent = this._parent;
-    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x) {
+    this.removeIndexBinding = ataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x) {
       that.$listItem = x;
 
     });
