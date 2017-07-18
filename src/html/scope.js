@@ -89,7 +89,7 @@ Scope.prototype = {
     // bindListItem
     var that = this,
       _parent = this._parent;
-    this.removeIndexBinding = ataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x) {
+    this.removeIndexBinding = dataBinding.addOnSet(_parent, arrayPath + '.' + $index, function(x) {
       that.$listItem = x;
 
     });
