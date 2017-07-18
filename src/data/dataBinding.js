@@ -24,8 +24,10 @@ function actionOnSet(_parent, key, action) {
   // initalize backing value store ( real value )
   _parent.bailingWire.value[key] = _parent[key];
   // check for existing getter / setter
-  let descriptor = Object.getOwnPropertyDescriptor(_parent, key);
-  let [oldGet, oldSet] = [descriptor.get, descriptor.set];
+  let descriptor = Object.getOwnPropertyDescriptor(_parent, key), oldGet, oldSet;
+  if (descriptor) {
+    [oldGet, oldSet] = [descriptor.get, descriptor.set];
+  }
   Object.defineProperty(_parent, key, {
     set: function(x) {
       // if value has changed
@@ -42,7 +44,9 @@ function actionOnSet(_parent, key, action) {
     },
     get: function() {
       // get real value
-      if(oldGet){ return oldGet.call(this); }
+      if (oldGet) {
+        return oldGet.call(this);
+      }
       return _parent.bailingWire.value[key];
     }
   });
