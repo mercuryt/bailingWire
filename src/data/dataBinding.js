@@ -23,11 +23,11 @@ function actionOnSet(_parent, key, action) {
   _parent.bailingWire.value = _parent.bailingWire.value || {};
   // initalize backing value store ( real value )
   _parent.bailingWire.value[key] = _parent[key];
-  // check for existing getter / setter
-  let descriptor = Object.getOwnPropertyDescriptor(_parent, key), oldGet, oldSet;
-  if (descriptor) {
-    [oldGet, oldSet] = [descriptor.get, descriptor.set];
-  }
+  // check for existing getter / setter - memory leak?
+ // let descriptor = Object.getOwnPropertyDescriptor(_parent, key), oldGet, oldSet;
+ // if (descriptor) {
+ //   [oldGet, oldSet] = [descriptor.get, descriptor.set];
+ // }
   Object.defineProperty(_parent, key, {
     set: function(x) {
       // if value has changed
@@ -36,17 +36,17 @@ function actionOnSet(_parent, key, action) {
         _parent.bailingWire.value[key] = x;
         // call listeners
         action.call(this, x);
-        if (oldSet) {
-          oldSet.call(this, x);
-        }
+ //       if (oldSet) {
+  //        oldSet.call(this, x);
+  //      }
       }
       return x;
     },
     get: function() {
       // get real value
-      if (oldGet) {
-        return oldGet.call(this);
-      }
+    //  if (oldGet) {
+      //  return oldGet.call(this);
+ //     }
       return _parent.bailingWire.value[key];
     }
   });
