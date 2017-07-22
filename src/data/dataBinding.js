@@ -24,10 +24,11 @@ function actionOnSet(_parent, key, action) {
   // initalize backing value store ( real value )
   _parent.bailingWire.value[key] = _parent[key];
   // check for existing getter / setter - memory leak?
- // let descriptor = Object.getOwnPropertyDescriptor(_parent, key), oldGet, oldSet;
- // if (descriptor) {
- //   [oldGet, oldSet] = [descriptor.get, descriptor.set];
- // }
+  let descriptor = Object.getOwnPropertyDescriptor(_parent, key), oldGet, oldSet;
+  if (descriptor && description.set) {
+    //[oldGet, oldSet] = [descriptor.get, descriptor.set];
+    console.error("existing setter on property " + key + " prevents binding, bailingwire does not yet support this situation, you may unbind the ixisting setter explicitly");
+  }
   Object.defineProperty(_parent, key, {
     set: function(x) {
       // if value has changed
