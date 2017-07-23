@@ -14,6 +14,7 @@
     <div template="main">
       <script>
         templateScripts.main = function(scope){
+          // data list
           scope.tasks = [
             {  
               name: "work out",
@@ -28,9 +29,12 @@
 	  scope.removeTask = function(task){
              scope.tasks.splice(scope.tasks.indexOf(task), 1);
 	  };
+          // detail
           scope.$('div').template('detail', {task: 'task', editMode: 'editMode'});
+          // list display
           scope.$('ul').array('listing', {currentTask: 'task', removeTask: 'removeTask'}, 'tasks');
-          scope.$('button').on('click', function(){
+          // create
+          scope.$('button.new').on('click', function(){
             scope.tasks.push(scope.task = {name: '', text: ''});
 	    scope.editMode = true;
           });
@@ -38,55 +42,55 @@
       </script>
       <ul></ul>
       <div></div>
-      <button>new</button>
+      <button class="new">new</button>
     </div>
 
-    <div template="listing">
+    <li template="listing">
       <script>
         templateScripts.listing = function(scope){
+          // select button / name
           scope.$('button.select').
-	    attr('innerHTML','$listItem.name').
+	    text('$listItem.name').
 	    on('click', function(){
               scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
             });
+          // show is current
           scope.$('span').attr('style.color', function(){
             return scope.currentTask == scope.$listItem ? 'red': 'black';
           });
+          // remove button
 	  scope.$('button.remove').on('click', function(){
             scope.removeTask(scope.$listItem);
 	  });
       };
       </script>
-      <button class="select"></button>
-      <button class="remove"></button>
-      
-    </div>
+      <span>
+        <button class="select"></button>
+        <button class="remove">x</button>
+      </span>
+    </li>
 
     <div template="detail">
       <script>
         templateScripts.detail = function(scope){
+          scope.editMode = false;
+          // mode toggle button
           scope.$('button').
-	    attr('innerHTML', function(){
-              return scope.editMode ? 'ok': 'edit';
-            }).on('button.toggle', 'click', function(){
+	    text(function(){ return scope.editMode ? 'ok': 'edit'; }).
+            on('click', function(){
               scope.editMode = !scope.editMode;
 	      if(scope.editMode)
 	        scope.$('input').focus();
             });
-
-          scope.$('.showMode').attr('style.visibility', function(){
-            return scope.editMode ? 'hidden' : '';
-          });
-          scope.$('h1').attr('innerHTML', 'task.name');
-          scope.$('p').attr('innerHTML', 'task.text');
-
-
-          scope.$('.editMode').attr('style.visibility', function(){
-            return scope.editMode ? '' : 'hidden';
-          });
-          scope.$('input').attr('value', 'task.name');
-          scope.$('textarea').attr('value', 'task.text');
-
+          // show mode
+          scope.$('.showMode').hide('editMode');
+          scope.$('h1').text('task.name');
+          scope.$('p').text('task.text');
+          // edit mode
+          scope.$('.editMode').show('editMode');
+          scope.$('input').value('task.name');
+          scope.$('textarea').value('task.text');
+          window.scope = scope;
       };
       </script>
       <button class="toggle"></button>
@@ -95,7 +99,7 @@
         <p></p>
       </div>
       <div class="editMode">
-        <input type="text"></input>
+        <input type="text"></input><br>
         <textarea></textarea>
       </div>
     </div>

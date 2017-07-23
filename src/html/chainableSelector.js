@@ -30,12 +30,21 @@ ChainableSelector.prototype = {
   text: function(dataPath) {
     return this.attr('innerHTML', dataPath);
   },
+  value: function(dataPath) {
+    return this.attr('value', dataPath);
+  },
   hide: function(dataPath) {
-    let get = dataBinding.walkAndGet(this.scope, dataPath);
-    return this.attr('style.display', () => get() ? 'hidden' : 'inital');
+    return this.scope.onSet(dataPath, (x) => this.getElement()
+      .style.display = x ? 'none' : ''
+    );
+  },
+  show: function(dataPath) {
+    return this.scope.onSet(dataPath, (x)=> this.getElement()
+        .style.display = x ? '' : 'none'
+    );
   },
   class: function(className, dataPaths) {
-    return this.scope.onSet(dataPath, function(x) {
+    return this.scope.onSet(dataPath, (x)=> {
       let e = this.getElement();
       if (x) e.classList.add(className);
       else e.classList.remove(className);
