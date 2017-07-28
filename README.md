@@ -1,3 +1,9 @@
+####################################################################################
+           do not use!
+           this is beta software, it has a known memory leak involving array templates
+###################################################################################
+
+
 BailingWire is a data binding library.
 
 It should be used to build two way bindings between javascript object properties and html elements, including templating.
