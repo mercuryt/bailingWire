@@ -1,0 +1,39 @@
+<html>
+
+<head>
+  <title>bailing wire hello world</title>
+  <script type="text/javascript" src="../src/output.js"></script>
+</head>
+
+<body>
+  <div bw-root="main">
+  </div>
+  <div template="main">
+    <script>
+      templateScripts.main = function(scope) {
+        scope.data = [
+          ['a', 1, 3],
+          ['b', 2, 6],
+          ['c', 3, 9]
+        ];
+        scope.$('.list').array('row', {}, 'data');
+        window.scope = scope;
+      }
+      templateScripts.row = function(scope) {
+        scope.$('this').array('datum', {}, '$listItem');
+      }
+      templateScripts.datum = function(scope) {
+        scope.$('span').text('$listItem');
+      }
+    </script>
+    <table>
+      <tbody class="list">
+        <tr template="row">
+          <td template="datum"><span></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+
+</html>
