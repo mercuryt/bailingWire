@@ -5,22 +5,26 @@ function Scope(templateName, _parent, params, holder) {
   this.template = templates[templateName].cloneNode(true); // deep
   this._parent = _parent;
   this.params = params;
-  this.cleanUp = [];
+  this._cleanUp = [];
   if (_parent)
     for (var key in params)
       this.bindData(key, _parent, params[key]); // params format is {localPath: parentPath}
 
   templateScripts[templateName].call(this.template, this, this.template); //provide template as argument as well as reciever for ease of use in callbacks
-  if (holder) {
+  if (holder) { // TODO: investigate why this is optional
     holder.innerHTML = '';
     holder.appendChild(this.template);
   }
+  // provisional
+  let interval = setInterval(() => {
+    if (!this.templateStillExists) this.cleanUp();
+  }, 1000);
 }
 
 Scope.prototype = {
   // bind a path on this scope to a path on another object
   bindData: function(path, other, otherPath) {
-    this.cleanUp.push(dataBinding.mutual(
+    this._cleanUp.push(dataBinding.mutual(
       other, otherPath,
       this, path
     ));
@@ -28,7 +32,7 @@ Scope.prototype = {
   // bind computed attribute
   bindComputed: function(path, action) {
     var that = this;
-    this.cleanUp.push(dataBinding.computedProperty(this, action, function(x) {
+    this._cleanUp.push(dataBinding.computedProperty(this, action, function(x) {
       that[path] = x;
     }));
   },
@@ -44,11 +48,12 @@ Scope.prototype = {
   },
   // build a new scope with the named template, link properties as specified in params, insert into holder identified by selector
   bindTemplate: function(selector, templateName, params) {
-    var holder = this.template.querySelector(selector);
+    let holder;
+    if (selector === '' || selector === 'this') holder = this.template;
+    else holder = this.template.querySelector(selector);
     holder.innerHTML = '';
-    var that = this;
-    setTimeout(function() { // resolve this after binding elements in current scope, to prevent css selector reaching into child template
-      new Scope(templateName, that, params, holder);
+    setTimeout(() => { // resolve this after binding elements in current scope, to prevent css selector reaching into child template
+      new Scope(templateName, this, params, holder); // add new scope clean up to current scope clean up?
     }, 1);
   },
   // bind an array full of objects to a list of html scope instances
@@ -62,9 +67,12 @@ Scope.prototype = {
       scope.arrayScopeSetIndex($index, path);
       return scope;
     }
-    var holder = this.template.querySelector(selector);
+    let holder;
+    if (selector === '' || selector === 'this') holder = this.template;
+    else holder = this.template.querySelector(selector);
+    holder.innerHTML = '';
     // bind setting the array, each time, bind the array values / length changeing functions
-    this.cleanUp.push(bindArrayPathToHTML(holder, subScope, this, path));
+    this._cleanUp.push(bindArrayPathToHTML(holder, subScope, this, path));
     //var currentArray = dataBinding.walkAndGet(this, path)();
     //onSet(currentArray);
   },
@@ -73,10 +81,10 @@ Scope.prototype = {
     var path = dataBinding.makePrivateKey(selector + '|' + attribute);
     // bind the computed property to the key name
     var setAttribute = dataBinding.walkAndSet(this.template.querySelector(selector), attribute);
-    this.cleanUp.push(dataBinding.computedProperty(this, action, setAttribute));
+    this._cleanUp.push(dataBinding.computedProperty(this, action, setAttribute));
   },
   onSet: function(path, action) {
-    this.cleanUp.push(dataBinding.addOnSet(this, path, action));
+    this._cleanUp.push(dataBinding.addOnSet(this, path, action));
   },
   //to be used when a scope representing an array item changes it's index
   arrayScopeSetIndex: function($index, arrayPath) {
@@ -99,6 +107,12 @@ Scope.prototype = {
   },
   on: function(selector, eventName, callback) {
     this.template.querySelector(selector).addEventListener(eventName, callback);
+  },
+  cleanUp: function() {
+    dataBinding.callArray(this._cleanUp);
+  },
+  templateStillExists: function() {
+    return docuent.body.contains(this.template);
   }
 };
 
