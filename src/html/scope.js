@@ -16,7 +16,7 @@ function Scope(templateName, _parent, params, holder) {
     holder.appendChild(this.template);
   }
   // provisional
-  let interval = setInterval(() => {
+  this.interval = setInterval(() => {
     if (!this.templateStillExists) this.cleanUp();
   }, 1000);
 }
@@ -109,6 +109,7 @@ Scope.prototype = {
     this.template.querySelector(selector).addEventListener(eventName, callback);
   },
   cleanUp: function() {
+    clearInterval(this.interval);
     dataBinding.callArray(this._cleanUp);
   },
   templateStillExists: function() {
