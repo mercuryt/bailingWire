@@ -85,7 +85,7 @@ function addOnSet(_parent, key, action) {
   });
 }
 
-// recursively walk path and bind regeneration listiners at each step
+// recursively walk path and bind regeneration listeners at each step
 // add on set to end of path
 function durableOnSet(_parent, path, action, cleanUp) {
   cleanUp = cleanUp || [];

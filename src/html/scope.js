@@ -17,7 +17,7 @@ function Scope(templateName, _parent, params, holder) {
   }
   // provisional
   this.interval = setInterval(() => {
-    if (!this.templateStillExists) this.cleanUp();
+    if (!this.templateStillExists()) this.cleanUp();
   }, 1000);
 }
 
@@ -38,11 +38,11 @@ Scope.prototype = {
   },
   // bind a path on this scope to an attribute of an html element in the scope, identified by selector
   bindElement: function(selector, attribute, path) {
+    var element = this.template.querySelector(selector);
+    if (element == null) console.error("selector " + selector + " not found");
     if (isFunction(path)) // bind computed property
       this.bindElementComputed(selector, attribute, path);
     else {
-      var element = this.template.querySelector(selector);
-      if (!element) console.error("selector " + selector + " not found");
       bindElementAttributePathToObjectPath(element, attribute, this, path);
     }
   },
@@ -113,7 +113,7 @@ Scope.prototype = {
     dataBinding.callArray(this._cleanUp);
   },
   templateStillExists: function() {
-    return docuent.body.contains(this.template);
+    return document.body.contains(this.template);
   }
 };
 

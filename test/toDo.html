@@ -1,6 +1,9 @@
+<!DOCTYPE html>
 <html>
   <head>
-   <title>bailing wire to do</title>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <title>bailing wire to do</title>
     <style>
       .selected{
           font-weight: bold;
@@ -20,59 +23,58 @@
               text: "pump you up"
             },
             {
-	      name: "shots",
-	      text: "insulin"
-	    }
+							name: "shots",
+							text: "insulin"
+						}
           ];
           scope.task = scope.tasks[0];
-	  scope.removeTask = function(task){
+	        scope.removeTask = function(task){
              scope.tasks.splice(scope.tasks.indexOf(task), 1);
-	  };
+					};
           scope.$('div').template('detail', {task: 'task', editMode: 'editMode'});
           scope.$('ul').array('listing', {currentTask: 'task', removeTask: 'removeTask'}, 'tasks');
-          scope.$('button').on('click', function(){
+          scope.$('button.new').on('click', function(){
             scope.tasks.push(scope.task = {name: '', text: ''});
-	    scope.editMode = true;
+	          scope.editMode = true;
           });
       };
       </script>
       <ul></ul>
       <div></div>
-      <button>new</button>
+      <button class='new'>new</button>
     </div>
 
     <div template="listing">
       <script>
         templateScripts.listing = function(scope){
           scope.$('button.select').
-	    attr('innerHTML','$listItem.name').
-	    on('click', function(){
+					attr('innerHTML','$listItem.name').
+					on('click', function(){
               scope.currentTask = scope.$listItem; // specal property provided to array scopes, $listItem
-            });
-          scope.$('span').attr('style.color', function(){
+					});
+          scope.$('.select').attr('style.color', function(){
             return scope.currentTask == scope.$listItem ? 'red': 'black';
           });
-	  scope.$('button.remove').on('click', function(){
+					scope.$('button.remove').on('click', function(){
             scope.removeTask(scope.$listItem);
-	  });
-      };
+					});
+				};
       </script>
       <button class="select"></button>
       <button class="remove"></button>
-      
     </div>
 
     <div template="detail">
       <script>
         templateScripts.detail = function(scope){
           scope.$('button').
-	    attr('innerHTML', function(){
-              return scope.editMode ? 'ok': 'edit';
-            }).on('button.toggle', 'click', function(){
-              scope.editMode = !scope.editMode;
-	      if(scope.editMode)
-	        scope.$('input').focus();
-            });
+	        attr('innerHTML', function(){
+						return scope.editMode ? 'ok': 'edit';
+					}).on('click', function(){
+						scope.editMode = !scope.editMode;
+						if(scope.editMode)
+						scope.$('input').focus();
+					});
 
           scope.$('.showMode').attr('style.visibility', function(){
             return scope.editMode ? 'hidden' : '';

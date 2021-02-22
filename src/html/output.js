@@ -171,6 +171,12 @@ htmlBinding = {
   }
 }
 
+function scopeCss(tag, templateName){
+  var text = tag.innerHTML;
+  var regex = /([\S{].*?{.*?})/g;
+  var newText = text.replace(regex, '[template="' + templateName + '"]');
+}
+
 function Scope(templateName, _parent, params, holder) {
   if (!templates[templateName]) {
     console.error("unknown template ", templateName);
@@ -190,7 +196,7 @@ function Scope(templateName, _parent, params, holder) {
   }
   // provisional
   this.interval = setInterval(() => {
-    if (!this.templateStillExists) this.cleanUp();
+    if (!this.templateStillExists()) this.cleanUp();
   }, 1000);
 }
 
@@ -286,7 +292,7 @@ Scope.prototype = {
     dataBinding.callArray(this._cleanUp);
   },
   templateStillExists: function() {
-    return docuent.body.contains(this.template);
+    return document.body.contains(this.template);
   }
 };
 
@@ -302,12 +308,6 @@ for (var key in alias)
 
 function isFunction(obj) {
   return !!(obj && obj.constructor && obj.call && obj.apply);
-}
-
-function scopeCss(tag, templateName){
-  var text = tag.innerHTML;
-  var regex = /([\S{].*?{.*?})/g;
-  var newText = text.replace(regex, '[template="' + templateName + '"]');
 }
 
 'use strict';
